@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Anti-reid-demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
+	<style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        #info {
+    		z-index: 9999;
+    		font-size: 20px;
+    		position: absolute;
+    		top: 8%;
+    		left: 10%;
+    		border: 1px dashed;
+    		background-color: #dcdcdc;
+    		font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+	<div id='info'></div>
+    <div id="map"></div>
+	<script>
+		ymaps.ready(init);
+
+		function init() {
+		    var myMap = new ymaps.Map('map', {
+		        center: [55.76, 37.64], //msk center
+		        zoom: 10
+		    }, {
+		        searchControlProvider: 'yandex#search'
+		    });
+
+			var options = {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric',
+				weekday: 'long',
+				timezone: 'UTC',
+				hour: 'numeric',
+				minute: 'numeric',
+				second: 'numeric'
+			};
+
+		    fetch('/points_dump.json').then(response => response.json())
+			.then(data => {
+		    	var minDate = new Date(data.reduce(
+		    		(min, p) => p.date < min ? p.date : min 
+		    	, data[0].date) * 1000).toLocaleString('ru', options);
+		    	var maxDate = new Date(data.reduce(
+		    		(max, p) => p.date > max ? p.date : max 
+		    	, data[0].date) * 1000).toLocaleString('ru', options);
+
+		    	console.info('Points dump', data);
+
+		    	document.getElementById('info').innerHTML = `Кол-во ДПС постов: ${data.length}<br>От:${minDate}<br>По:${maxDate}`;
+
+		    	data.forEach((v, k) => {
+					var date = new Date(v.date * 1000);
+		    		myMap.geoObjects.add(new ymaps.Placemark([v.lat, v.long], {
+		            	balloonContent: `<strong>${v.message}</strong><br>${date.toLocaleString('ru', options)}`
+		        	}, {
+		            	preset: 'islands#icon',
+		            	iconColor: (v.message.length > 0) ? '#3b5998' : '#0095b6'
+		        	}));
+		    	});
+		  	})
+		  	.catch(alert);
+		}
+	</script>
+</body>
+</html>
